@@ -1,0 +1,38 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Heroes of Genesis",
+    "description": "A dark fantasy card RPG built for the Regenesis Labs Build Contest. Recruit heroes, fuse duplicates into legends, raid Rift bosses with friends, trade face-to-face, and climb the Roads. Then walk out into Antrom: a shared top-down overworld of villages, dungeons and puzzles where four warlords guard the story's cards. Every monster you fell can leave its card behind. 100% mobile.",
+    "navmapThumbnail": "images/scene-thumbnail-hd.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "mfmcmillian",
+  "contact": {
+    "name": "mfmcmillian",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": ["game", "rpg"],
+  "scene": {
+    "parcels": ["-17,123", "-16,123", "-17,124", "-16,124"],
+    "base": "-17,123"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": { "x": 8, "y": 0, "z": 6 },
+      "cameraTarget": { "x": 16, "y": 1.4, "z": 16 }
+    }
+  ],
+  "featureToggles": {
+    "voiceChat": "enabled",
+    "portableExperiences": "enabled"
+  },
+  "authoritativeMultiplayer": true,
+  "worldConfiguration": {
+    "name": "hogdemo.dcl.eth"
+  },
+  "logsPermissions": ["0xfe2d424af0df49bb3316cb2e9f574b0d09cf98ad"]
+}

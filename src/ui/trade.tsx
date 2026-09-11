@@ -1,0 +1,247 @@
+import { Color4 } from '@dcl/sdk/math'
+import ReactEcs from '@dcl/sdk/react-ecs'
+import { UiEntity } from './ui'
+import { game } from '../game/store'
+import {
+  getMyName,
+  levelOf,
+  presentPlayers,
+  trade,
+  tradeAccept,
+  tradeDecline,
+  tradeInvite,
+  tradeLock,
+  tradeOffer,
+  tradeSides
+} from '../mp/session'
+import { press, pressShrink, pressTint } from './fx/press'
+import { LABELS } from './labels.gen'
+import { HeroPickStrip, TravelerPlate } from './panels'
+import { cream, danger, gold, good, muted, panelDim } from './theme'
+import { Digits, Face, Img, MenuTitle, MpBackdrop, NameTag, Notice } from './widgets'
+
+// ---- multiplayer: trade + rift -------------------------------------------------
+
+/** One side of the trade table: banner + offer card + lock plate. */
+function TradeSide(props: { mine: boolean }) {
+  const sides = tradeSides()
+  const offer = props.mine ? sides.mine : sides.theirs
+  const locked = props.mine ? sides.myLock : sides.theirLock
+  const name = props.mine ? getMyName() || 'you' : sides.themName
+  const banner = LABELS['trade-name']
+  const card = LABELS['trade-card']
+  const lock = LABELS[locked ? 'trade-lock-on' : 'trade-lock-off']
+  const cardW = 330
+  const cardH = card ? Math.round((cardW * card.h) / card.w) : 206
+  return (
+    <UiEntity uiTransform={{ height: 292, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+      {banner ? (
+        <UiEntity
+          uiTransform={{ width: 44, height: 235, alignItems: 'center', justifyContent: 'center', margin: { right: 2 } }}
+          uiBackground={{
+            textureMode: 'stretch',
+            texture: { src: banner.src },
+            uvs: banner.uvs,
+            color: Color4.White()
+          }}
+        >
+          <NameTag name={name} w={22} tint={props.mine ? gold : cream} />
+        </UiEntity>
+      ) : null}
+      <UiEntity
+        uiTransform={{ width: cardW, height: cardH, alignItems: 'center', justifyContent: 'center' }}
+        uiBackground={
+          card
+            ? { textureMode: 'stretch', texture: { src: card.src }, uvs: card.uvs, color: Color4.White() }
+            : { color: panelDim }
+        }
+      >
+        {offer ? (
+          <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Face id={offer.defId} w={190} h={190} />
+            <UiEntity uiTransform={{ flexDirection: 'column-reverse', alignItems: 'center', margin: { left: 4 } }}>
+              <Img k={offer.defId} w={20} tint={cream} />
+              <Digits value={offer.level} w={18} tint={gold} />
+            </UiEntity>
+          </UiEntity>
+        ) : (
+          <Img k="empty-seat" w={18} tint={muted} />
+        )}
+      </UiEntity>
+      {lock ? (
+        <UiEntity
+          uiTransform={{
+            width: 64,
+            height: 190,
+            margin: { left: 4 },
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseDown={props.mine && offer ? press('trade:lock', () => tradeLock(!locked)) : undefined}
+        >
+          <UiEntity
+            uiTransform={{
+              width: 64 - pressShrink('trade:lock', 64),
+              height: 190 - pressShrink('trade:lock', 190),
+              pointerFilter: 'none'
+            }}
+            uiBackground={{
+              textureMode: 'stretch',
+              texture: { src: lock.src },
+              uvs: lock.uvs,
+              color: pressTint('trade:lock', props.mine || locked ? Color4.White() : Color4.create(1, 1, 1, 0.45))
+            }}
+          />
+        </UiEntity>
+      ) : null}
+    </UiEntity>
+  )
+}
+
+/** Rows of travelers in the scene to invite. */
+function TradePartnerList() {
+  const people = [...presentPlayers.entries()]
+  if (trade.sentTo) {
+    return (
+      <UiEntity
+        uiTransform={{ height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Img k="waiting" w={30} tint={gold} />
+        <NameTag name={presentPlayers.get(trade.sentTo) ?? trade.sentTo.slice(0, 8)} w={24} tint={cream} />
+      </UiEntity>
+    )
+  }
+  if (people.length === 0) {
+    return (
+      <UiEntity
+        uiTransform={{ height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Img k="no-travelers" w={26} tint={muted} />
+      </UiEntity>
+    )
+  }
+  return (
+    <UiEntity uiTransform={{ height: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+      {people.slice(0, 5).map(([address, name]) => (
+        <TravelerPlate key={address} name={name} tint={cream} level={levelOf(address)} onTap={() => tradeInvite(address)}>
+          <Img k="invite" w={24} tint={gold} />
+        </TravelerPlate>
+      ))}
+      {trade.closed ? <Img k={trade.closed} w={20} tint={danger} margin={8} /> : null}
+    </UiEntity>
+  )
+}
+
+export function TradeScreen() {
+  const sides = tradeSides()
+  const swap = LABELS['trade-swap']
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%',
+        height: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      <MpBackdrop k="map-trade" />
+      {trade.table ? (
+        <UiEntity uiTransform={{ flexDirection: 'column-reverse', alignItems: 'center', justifyContent: 'center' }}>
+          <TradeSide mine={true} />
+          <TradeSide mine={false} />
+          {swap ? (
+            <UiEntity
+              uiTransform={{
+                positionType: 'absolute',
+                position: { top: '44%', left: 175 },
+                width: 84,
+                height: 78,
+                pointerFilter: 'none'
+              }}
+              uiBackground={{
+                textureMode: 'stretch',
+                texture: { src: swap.src },
+                uvs: swap.uvs,
+                color: Color4.White()
+              }}
+            />
+          ) : null}
+        </UiEntity>
+      ) : (
+        <TradePartnerList />
+      )}
+      {trade.table ? (
+        <HeroPickStrip
+          hint="offer-card"
+          empty="trade-none"
+          selectedUid={sides.mine?.uid}
+          onPick={(uid) => tradeOffer(uid)}
+        />
+      ) : null}
+      <Notice />
+      <MenuTitle k="trade-title" />
+    </UiEntity>
+  )
+}
+
+/** Incoming trade invite toast; rendered over every screen. */
+export function TradeInviteToast() {
+  const invite = trade.invite
+  const p = game.phase
+  if (!invite || p === 'battle' || p === 'banner' || p === 'report' || p === 'rift' || p === 'start' || p === 'intro' || p === 'credits') {
+    return null
+  }
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: '30%', right: 40 },
+        width: 96,
+        height: 460,
+        flexDirection: 'column-reverse',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+      uiBackground={{ color: Color4.create(0.05, 0.03, 0.05, 0.92) }}
+    >
+      <NameTag name={invite.name} w={22} tint={gold} />
+      <Img k="wants-trade" w={20} tint={cream} margin={6} />
+      <UiEntity
+        uiTransform={{ width: 60, height: 130, alignItems: 'center', justifyContent: 'center', margin: 4 }}
+        // The table state that follows pulls us onto the trade screen (tickTrade).
+        onMouseDown={press('trade:accept', () => tradeAccept())}
+      >
+        <UiEntity
+          uiTransform={{
+            width: 60 - pressShrink('trade:accept', 60),
+            height: 130 - pressShrink('trade:accept', 130),
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerFilter: 'none'
+          }}
+          uiBackground={{ color: pressTint('trade:accept', good) }}
+        >
+          <Img k="accept" w={22} tint={cream} />
+        </UiEntity>
+      </UiEntity>
+      <UiEntity
+        uiTransform={{ width: 60, height: 130, alignItems: 'center', justifyContent: 'center', margin: 4 }}
+        onMouseDown={press('trade:decline', () => tradeDecline())}
+      >
+        <UiEntity
+          uiTransform={{
+            width: 60 - pressShrink('trade:decline', 60),
+            height: 130 - pressShrink('trade:decline', 130),
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerFilter: 'none'
+          }}
+          uiBackground={{ color: pressTint('trade:decline', danger) }}
+        >
+          <Img k="decline" w={22} tint={cream} />
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}

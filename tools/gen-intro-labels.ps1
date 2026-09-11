@@ -1,0 +1,72 @@
+# Renders the intro story narrator line strips in the same style as the other
+# label generators: white all-caps Segoe UI on a transparent background, rotated
+# 90 CCW so glyphs read bottom-to-top in landscape and upright in the portrait
+# grip (matches images/labels/fire-line*.png and tut-*.png).
+#
+# Usage:  powershell -NoProfile -ExecutionPolicy Bypass -File tools/gen-intro-labels.ps1
+# Emits:  images/labels/intro-*.png  +  src/ui/labels.intro.gen.ts
+
+Add-Type -AssemblyName System.Drawing
+
+$root = Split-Path $PSScriptRoot -Parent
+$outDir = Join-Path $root 'images\labels'
+$tsPath = Join-Path $root 'src\ui\labels.intro.gen.ts'
+
+# Supersampled 2x for high-DPR phones; display sizes are stage units and derive
+# height from the aspect ratio, so layout is unchanged - strips just stay crisp.
+. "$PSScriptRoot\lib-labels.ps1"
+$font = New-LabelFont 26
+
+$lines = [ordered]@{
+  # page 1 - Antrom
+  'intro-1a' = 'IN THE HEART OF GENESIS CITY'
+  'intro-1b' = 'STANDS THE VILLAGE OF ANTROM.'
+  # page 2 - the Gauntlet
+  'intro-2a' = 'ITS FIRE IS NO COMMON FLAME.'
+  'intro-2b' = 'IT BURNS FROM THE HEROES'' GAUNTLET,'
+  'intro-2c' = 'FED BY EVERY OATH EVER SWORN.'
+  # page 3 - the ward
+  'intro-3a' = 'WHILE THE FLAME BURNS,'
+  'intro-3b' = 'NO DEMON MAY PASS OUR WALLS.'
+  'intro-3c' = 'SO THE DEMON KING WILL NOT COME HIMSELF.'
+  # page 4 - the four warlords
+  'intro-4a' = 'HE HAS SENT FOUR WARLORDS'
+  'intro-4b' = 'TO SEIZE THE KINGDOMS AROUND US:'
+  'intro-4c' = 'THE MOOR OGRE. THE THORN QUEEN.'
+  'intro-4d' = 'THE CRIMSON ABBOT. THE ASHEN REGENT.'
+  # page 5 - the threat and the mission
+  'intro-5a' = 'EACH NOW RAISES AN ARMY.'
+  'intro-5b' = 'IF THOSE ARMIES MARCH AS ONE,'
+  'intro-5c' = 'EVEN THE FLAME WILL DROWN.'
+  'intro-5d' = 'SO WE STRIKE FIRST.'
+  # page 6 - call to action
+  'intro-6a' = 'TAKE THE OLD ROADS. SLIP INTO THEIR KINGDOMS.'
+  'intro-6b' = 'FELL EACH WARLORD BEFORE HIS ARMY RISES.'
+  'intro-6c' = 'BUT FIRST, HERO -'
+  'intro-6d' = 'SWEAR YOUR OATH TO THE FLAME.'
+  # welcome dialog on the oath chamber, right after the story
+  'intro-w1' = 'WELCOME TO HEROES OF GENESIS,'
+  'intro-w2' = 'THE REALM''S ROLEPLAYING CARD GAME.'
+  'intro-w3' = 'SELECT YOUR STARTING HERO.'
+  # first-fight dialog, shown as the oath clash begins (page 1: mechanics)
+  'intro-f1' = 'BATTLES ARE TURN-BASED AND FIGHT THEMSELVES.'
+  'intro-f2' = 'THE HIGHEST ATTACK ALWAYS STRIKES FIRST,'
+  'intro-f3' = 'AND EVERY HERO STRIKES WITH THEIR OWN SKILL.'
+  'intro-f4' = 'TAP ACTION TO SKIP TO THE RESULT.'
+  # page 2: why this fight, and what to do after
+  'intro-f5' = 'AN ASH-HOUND BLOCKS THE ROAD TO ANTROM,'
+  'intro-f6' = 'A CAPTURED HERO IN ITS JAWS.'
+  'intro-f7' = 'CUT IT DOWN, MAKE IT TO THE VILLAGE,'
+  'intro-f8' = 'AND ADD THE FREED HERO TO YOUR PARTY.'
+  # card-drop tease on arriving home after the oath clash
+  'intro-d1' = 'THE HOUND DROPPED A HERO CARD.'
+  'intro-d2' = 'YOU HAVE REACHED THE VILLAGE -'
+  'intro-d3' = 'CHECK YOUR PARTY.'
+}
+
+# Page-1 strips pack first so they share atlas page 0, which rides in the
+# boot-critical fetch (see preload.ts); later pages warm in the deferred pass.
+$strips = [ordered]@{}
+foreach ($kv in $lines.GetEnumerator()) { $strips[$kv.Key] = New-LabelStrip $kv.Value $font }
+$font.Dispose()
+Write-LabelFamily -family 'intro' -strips $strips -root $root -exportName 'INTRO_LABELS' -priority 'intro-1*' -comment 'Intro story narrator line strips. Importing this module registers them into LABELS.'

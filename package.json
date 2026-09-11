@@ -1,0 +1,28 @@
+{
+  "name": "heroes-of-genesis",
+  "version": "1.0.1",
+  "description": "Heroes of Genesis — recruit heroes, party up, and walk the Roads",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "node tools/deploy-land.mjs",
+    "deploy:world": "sdk-commands deploy --target-content https://worlds-content-server.decentraland.org",
+    "build": "sdk-commands build",
+    "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next",
+    "server-logs": "sdk-commands sdk-server-logs"
+  },
+  "devDependencies": {
+    "@dcl/js-runtime": "7.27.1-33086747846.commit-824d240",
+    "@dcl/sdk": "^7.27.1-33086747846.commit-824d240"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  }
+}
